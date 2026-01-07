@@ -188,22 +188,25 @@ export default function MicChecker() {
   }, [])
 
   return (
-    <div className="w-full max-w-4xl mx-auto aspect-video flex flex-col relative bg-[#121214] rounded-xl border border-white/5 shadow-2xl overflow-hidden">
+    <div className="w-full max-w-4xl mx-auto aspect-video flex flex-col relative bg-card/50 backdrop-blur-xl rounded-xl border border-white/5 shadow-2xl overflow-hidden ring-1 ring-white/5">
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
-        <div className="flex flex-col">
-          <h1 className="text-sm font-medium text-zinc-400 tracking-wide">SIGNAL MONITOR</h1>
-          {error && <span className="text-xs text-red-400 mt-1">{error}</span>}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className={cn("w-2 h-2 rounded-full transition-colors duration-500", isRecording ? "bg-primary animate-pulse" : "bg-zinc-700")} />
+            <h1 className="text-xs font-medium text-muted-foreground tracking-widest uppercase">Signal Monitor</h1>
+          </div>
+          {error && <span className="text-xs text-red-400 mt-1 animate-in fade-in slide-in-from-top-1">{error}</span>}
         </div>
 
         <Button
           variant="ghost"
           size="icon"
-          className="text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-300"
           onClick={() => setIsSettingsOpen(true)}
         >
-          <Settings2 className="h-5 w-5" />
+          <Settings2 className="h-4 w-4" />
         </Button>
       </div>
 
@@ -211,56 +214,63 @@ export default function MicChecker() {
       <div className="flex-1 flex flex-col items-center justify-center relative">
 
         {/* Center Status / Level */}
-        <div className="relative flex items-center justify-center mb-12">
+        <div className="relative flex items-center justify-center mb-12 group">
           {/* Glowing Background Ring */}
           <div
             className={cn(
-              "absolute w-64 h-64 rounded-full transition-all duration-300 ease-out blur-3xl opacity-20 pointer-events-none",
-              isRecording ? "bg-purple-500" : "bg-zinc-800"
+              "absolute w-64 h-64 rounded-full transition-all duration-500 ease-out blur-[60px] opacity-20 pointer-events-none",
+              isRecording ? "bg-primary" : "bg-zinc-800"
             )}
             style={{ transform: `scale(${1 + audioLevel / 100})` }}
           />
+
+          {/* Ripple Effect */}
+          {isRecording && (
+            <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping opacity-20" />
+          )}
 
           {/* Main Indicator */}
           <div className="relative z-10 flex flex-col items-center gap-4">
             <button
               onClick={isRecording ? stopRecording : startRecording}
               className={cn(
-                "w-24 h-24 rounded-full flex items-center justify-center border transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95",
+                "w-20 h-20 rounded-full flex items-center justify-center border transition-all duration-300 cursor-pointer",
                 isRecording
-                  ? "border-purple-500/50 bg-purple-500/10 shadow-[0_0_30px_-5px_rgba(168,85,247,0.4)]"
-                  : "border-zinc-700 bg-zinc-800/50 hover:bg-zinc-700/50 hover:border-zinc-600"
+                  ? "border-primary/50 bg-primary/10 shadow-[0_0_40px_-10px_rgba(94,106,210,0.5)] scale-110"
+                  : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 hover:scale-105"
               )}
             >
               {isRecording ? (
-                <Mic className={cn("h-8 w-8 text-purple-400", audioLevel > 50 && "animate-pulse")} />
+                <div className="relative">
+                  <Mic className={cn("h-6 w-6 text-primary transition-all duration-100", audioLevel > 50 && "scale-110 brightness-150")} />
+                </div>
               ) : (
-                <MicOff className="h-8 w-8 text-zinc-600 group-hover:text-zinc-400" />
+                <MicOff className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-foreground" />
               )}
             </button>
           </div>
         </div>
 
         {/* Frequency Bars */}
-        <div className="flex items-end justify-center gap-1.5 h-16 w-full max-w-sm px-4">
-          {[...Array(20)].map((_, i) => {
+        <div className="flex items-end justify-center gap-1 h-12 w-full max-w-xs px-4">
+          {[...Array(32)].map((_, i) => {
             // Simple simulation of frequency data visualization based on single level for now
             // In a real app, we'd use getByteFrequencyData per bin
-            const heightMod = Math.sin(i * 0.5) * 0.5 + 0.5
+            const heightMod = Math.sin(i * 0.4) * 0.5 + 0.5
             const height = isRecording
-              ? Math.max(4, (audioLevel * heightMod * (0.5 + Math.random() * 0.5)))
+              ? Math.max(4, (audioLevel * heightMod * (0.6 + Math.random() * 0.4)))
               : 4
 
             return (
               <div
                 key={i}
                 className={cn(
-                  "w-2 rounded-full transition-all duration-75",
-                  isRecording ? "bg-zinc-400" : "bg-zinc-800"
+                  "w-1 rounded-full transition-all duration-150",
+                  isRecording ? "bg-primary/80" : "bg-zinc-800"
                 )}
                 style={{
                   height: `${height}%`,
-                  opacity: isRecording ? 0.5 + (height / 100) * 0.5 : 0.3
+                  opacity: isRecording ? 0.4 + (height / 100) * 0.6 : 0.2
                 }}
               />
             )

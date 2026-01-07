@@ -45,13 +45,13 @@ export function SettingsModal({
         className="fixed inset-0" 
         onClick={onClose}
       />
-      <Card className="w-full max-w-md bg-[#1C1C1E] border-white/10 shadow-2xl relative z-50 animate-in zoom-in-95 duration-200">
+      <Card className="w-full max-w-md bg-card/95 backdrop-blur-xl border-white/5 shadow-2xl relative z-50 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-6 border-b border-white/5">
-          <h2 className="text-lg font-medium text-white">Audio Settings</h2>
+          <h2 className="text-lg font-medium text-foreground">Audio Settings</h2>
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white"
+            className="h-8 w-8 rounded-full hover:bg-white/5 text-muted-foreground hover:text-foreground"
             onClick={onClose}
           >
             <X className="h-4 w-4" />
@@ -61,21 +61,21 @@ export function SettingsModal({
         <div className="p-6 space-y-8">
           {/* Input Device */}
           <div className="space-y-3">
-            <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Input Device</label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Input Device</label>
             <Select
               value={selectedDeviceId}
               onValueChange={onDeviceChange}
               disabled={isRecording}
             >
-              <SelectTrigger className="w-full bg-black/20 border-white/10 text-white hover:bg-white/5 focus:ring-0 focus:border-white/20">
+              <SelectTrigger className="w-full bg-secondary/50 border-white/5 text-foreground hover:bg-secondary/80 focus:ring-1 focus:ring-primary/20 focus:border-primary/20 transition-all">
                 <SelectValue placeholder="Select microphone" />
               </SelectTrigger>
-              <SelectContent className="bg-[#1C1C1E] border-white/10 text-white">
+              <SelectContent className="bg-card border-white/5 text-foreground shadow-xl">
                 {devices.map((device) => (
                   <SelectItem 
                     key={device.deviceId} 
                     value={device.deviceId}
-                    className="focus:bg-white/10 focus:text-white cursor-pointer"
+                    className="focus:bg-primary/10 focus:text-primary cursor-pointer"
                   >
                     {device.label || `Microphone ${device.deviceId.slice(0, 8)}...`}
                   </SelectItem>
@@ -91,21 +91,21 @@ export function SettingsModal({
 
           {/* Echo Feedback */}
           <div className="space-y-4">
-             <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Playback</label>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Playback</label>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-white/5 transition-colors hover:bg-secondary/50">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-md bg-blue-500/10 text-blue-400">
+                <div className="p-2 rounded-md bg-primary/10 text-primary">
                   <Volume2 className="h-4 w-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <div className="text-sm font-medium text-white">Echo Feedback</div>
-                  <div className="text-xs text-zinc-500">Hear your own voice</div>
+                  <div className="text-sm font-medium text-foreground">Echo Feedback</div>
+                  <div className="text-xs text-muted-foreground">Hear your own voice</div>
                 </div>
               </div>
               <Switch
                 checked={echoEnabled}
                 onCheckedChange={onEchoChange}
-                className="data-[state=checked]:bg-blue-500"
+                className="data-[state=checked]:bg-primary"
               />
             </div>
           </div>
@@ -113,8 +113,8 @@ export function SettingsModal({
           {/* Latency */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-               <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Latency</label>
-              <span className="text-xs font-mono text-zinc-400">
+               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Latency</label>
+              <span className="text-xs font-mono text-muted-foreground">
                 {delayTime}ms
               </span>
             </div>
