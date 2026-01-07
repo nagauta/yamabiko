@@ -15,6 +15,7 @@ export default function MicChecker() {
   const [echoEnabled, setEchoEnabled] = useState(true)
   const [delayTime, setDelayTime] = useState(300)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [audioInfo, setAudioInfo] = useState<{ sampleRate: number; channelCount: number; label: string } | null>(null)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -112,7 +113,18 @@ export default function MicChecker() {
 
       // 権限取得後にデバイス名を再取得
       const deviceList = await navigator.mediaDevices.enumerateDevices()
-      setDevices(deviceList.filter(device => device.kind === "audioinput"))
+      const audioInputs = deviceList.filter(device => device.kind === "audioinput")
+      setDevices(audioInputs)
+
+      // ストリームの設定情報を取得
+      const audioTrack = stream.getAudioTracks()[0]
+      const settings = audioTrack.getSettings()
+
+      setAudioInfo({
+        sampleRate: settings.sampleRate || 48000,
+        channelCount: settings.channelCount || 1,
+        label: audioTrack.label || "Unknown Microphone"
+      })
 
       mediaStreamRef.current = stream
 
@@ -156,11 +168,17 @@ export default function MicChecker() {
     cleanupAudio()
     setIsRecording(false)
     setAudioLevel(0)
+    // 情報は残す
   }
 
   // デバイス変更時の処理
   const handleDeviceChange = async (deviceId: string) => {
     setSelectedDeviceId(deviceId)
+    // デバイスが変更されたら、既存のオーディオ詳細情報は一度クリアする（再取得が必要なため）
+    // ただし、録音中でない場合はラベル表示のために空の状態にするのではなく、
+    // レンダリング時に selectedDeviceId からラベルを解決するようにする
+    setAudioInfo(null)
+
     if (isRecording) {
       await setupAudio(deviceId)
     }
@@ -275,6 +293,48 @@ export default function MicChecker() {
               />
             )
           })}
+        </div>
+
+        {/* Current Audio Info */}
+        <div className={cn(
+          "absolute bottom-8 left-0 right-0 flex justify-center transition-all duration-500",
+          (audioInfo || selectedDeviceId) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        )}>
+          <div className={cn(
+            "flex items-center gap-4 px-4 py-2 rounded-full border text-[10px] font-mono shadow-lg transition-colors duration-300",
+            isRecording
+              ? "bg-black/40 backdrop-blur-md border-white/10 text-muted-foreground"
+              : "bg-zinc-900/40 backdrop-blur-sm border-white/5 text-zinc-600"
+          )}>
+            <span className={cn(
+              "font-medium truncate max-w-[200px] transition-colors duration-300",
+              isRecording ? "text-foreground" : "text-zinc-500"
+            )}>
+              {audioInfo?.label || devices.find(d => d.deviceId === selectedDeviceId)?.label || "Select Microphone"}
+            </span>
+
+            <div className={cn("w-px h-3 transition-colors duration-300", isRecording ? "bg-white/10" : "bg-white/5")} />
+
+            <div className="flex items-center gap-3">
+              {audioInfo ? (
+                <>
+                  <span className={isRecording ? "" : "opacity-50"}>{audioInfo.sampleRate / 1000}kHz</span>
+                  <span className={isRecording ? "" : "opacity-50"}>{audioInfo.channelCount}ch</span>
+                </>
+              ) : (
+                <>
+                  <span className="opacity-30">--kHz</span>
+                  <span className="opacity-30">--ch</span>
+                </>
+              )}
+              <span className={cn(
+                "transition-colors duration-300",
+                isRecording ? "text-emerald-400" : "text-zinc-600"
+              )}>
+                {isRecording ? "ACTIVE" : "STANDBY"}
+              </span>
+            </div>
+          </div>
         </div>
 
       </div>
