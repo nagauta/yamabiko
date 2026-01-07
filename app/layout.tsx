@@ -5,7 +5,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Yamabiko - マイク入力チェッカー",
+  title: "Yamabiko",
   description: "マイクの入力を簡単にチェックできるウェブアプリ",
 }
 
