@@ -70,7 +70,7 @@ export function SettingsModal({
               <SelectTrigger className="w-full bg-secondary/50 border-white/5 text-foreground hover:bg-secondary/80 focus:ring-1 focus:ring-primary/20 focus:border-primary/20 transition-all">
                 <SelectValue placeholder="Select microphone" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-white/5 text-foreground shadow-xl">
+              <SelectContent className="bg-card border-white/5 text-foreground shadow-xl max-w-[calc(100vw-4rem)]">
                 {devices.map((device) => (
                   <SelectItem 
                     key={device.deviceId} 

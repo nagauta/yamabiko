@@ -206,10 +206,10 @@ export default function MicChecker() {
   }, [])
 
   return (
-    <div className="w-full max-w-4xl mx-auto aspect-video flex flex-col relative bg-card/50 backdrop-blur-xl rounded-xl border border-white/5 shadow-2xl overflow-hidden ring-1 ring-white/5">
+    <div className="w-full max-w-4xl mx-auto min-h-[500px] md:min-h-0 md:aspect-video flex flex-col relative bg-card/50 backdrop-blur-xl rounded-xl border border-white/5 shadow-2xl overflow-hidden ring-1 ring-white/5">
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
+      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-start z-20">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <div className={cn("w-2 h-2 rounded-full transition-colors duration-500", isRecording ? "bg-primary animate-pulse" : "bg-zinc-700")} />
@@ -232,7 +232,7 @@ export default function MicChecker() {
       <div className="flex-1 flex flex-col items-center justify-center relative">
 
         {/* Center Status / Level */}
-        <div className="relative flex items-center justify-center mb-12 group">
+        <div className="relative flex items-center justify-center mb-8 md:mb-12 group">
           {/* Glowing Background Ring */}
           <div
             className={cn(
@@ -297,33 +297,33 @@ export default function MicChecker() {
 
         {/* Current Audio Info */}
         <div className={cn(
-          "absolute bottom-8 left-0 right-0 flex justify-center transition-all duration-500",
+          "absolute bottom-4 md:bottom-8 left-0 right-0 flex justify-center transition-all duration-500 px-4",
           (audioInfo || selectedDeviceId) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}>
           <div className={cn(
-            "flex items-center gap-4 px-4 py-2 rounded-full border text-[10px] font-mono shadow-lg transition-colors duration-300",
+            "flex items-center gap-2 md:gap-4 px-3 md:px-4 py-2 rounded-full border text-[10px] font-mono shadow-lg transition-colors duration-300 max-w-full overflow-hidden",
             isRecording
               ? "bg-black/40 backdrop-blur-md border-white/10 text-muted-foreground"
               : "bg-zinc-900/40 backdrop-blur-sm border-white/5 text-zinc-600"
           )}>
             <span className={cn(
-              "font-medium truncate max-w-[200px] transition-colors duration-300",
+              "font-medium truncate max-w-[120px] md:max-w-[200px] transition-colors duration-300",
               isRecording ? "text-foreground" : "text-zinc-500"
             )}>
               {audioInfo?.label || devices.find(d => d.deviceId === selectedDeviceId)?.label || "Select Microphone"}
             </span>
 
-            <div className={cn("w-px h-3 transition-colors duration-300", isRecording ? "bg-white/10" : "bg-white/5")} />
+            <div className={cn("w-px h-3 shrink-0 transition-colors duration-300", isRecording ? "bg-white/10" : "bg-white/5")} />
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
               {audioInfo ? (
                 <>
-                  <span className={isRecording ? "" : "opacity-50"}>{audioInfo.sampleRate / 1000}kHz</span>
+                  <span className={cn("hidden sm:inline", isRecording ? "" : "opacity-50")}>{audioInfo.sampleRate / 1000}kHz</span>
                   <span className={isRecording ? "" : "opacity-50"}>{audioInfo.channelCount}ch</span>
                 </>
               ) : (
                 <>
-                  <span className="opacity-30">--kHz</span>
+                  <span className="opacity-30 hidden sm:inline">--kHz</span>
                   <span className="opacity-30">--ch</span>
                 </>
               )}
