@@ -12,10 +12,10 @@ export default function MicChecker() {
   const [isRecording, setIsRecording] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [error, setError] = useState<string>("")
-  const [echoEnabled, setEchoEnabled] = useState(false)
+  const [echoEnabled, setEchoEnabled] = useState(true)
   const [delayTime, setDelayTime] = useState(300)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  
+
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -32,10 +32,10 @@ export default function MicChecker() {
         const deviceList = await navigator.mediaDevices.enumerateDevices()
         const audioInputs = deviceList.filter(device => device.kind === "audioinput")
         setDevices(audioInputs)
-        
+
         if (audioInputs.length > 0 && !selectedDeviceId) {
-           // 最初のデバイスを選択（ラベルがない場合もあるがIDは取れる）
-           setSelectedDeviceId(audioInputs[0].deviceId)
+          // 最初のデバイスを選択（ラベルがない場合もあるがIDは取れる）
+          setSelectedDeviceId(audioInputs[0].deviceId)
         }
       } catch (err) {
         console.error("Error enumerating devices:", err)
@@ -63,52 +63,8 @@ export default function MicChecker() {
     animationFrameRef.current = requestAnimationFrame(measureAudioLevel)
   }
 
-  // 録音開始
-  const startRecording = async () => {
-    try {
-      setError("")
-      
-      const constraints: MediaStreamConstraints = {
-        audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true,
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      
-      // 権限取得後にデバイス名を再取得（初回起動時はラベルが空のため）
-      const deviceList = await navigator.mediaDevices.enumerateDevices()
-      setDevices(deviceList.filter(device => device.kind === "audioinput"))
-
-      mediaStreamRef.current = stream
-
-      audioContextRef.current = new AudioContext()
-      analyserRef.current = audioContextRef.current.createAnalyser()
-      analyserRef.current.fftSize = 64 // バーの本数に合わせて調整
-      analyserRef.current.smoothingTimeConstant = 0.8
-
-      delayNodeRef.current = audioContextRef.current.createDelay(5.0)
-      delayNodeRef.current.delayTime.value = delayTime / 1000
-      
-      gainNodeRef.current = audioContextRef.current.createGain()
-      gainNodeRef.current.gain.value = echoEnabled ? 1.0 : 0.0
-
-      const source = audioContextRef.current.createMediaStreamSource(stream)
-      sourceNodeRef.current = source
-
-      source.connect(analyserRef.current)
-      source.connect(delayNodeRef.current)
-      delayNodeRef.current.connect(gainNodeRef.current)
-      gainNodeRef.current.connect(audioContextRef.current.destination)
-
-      setIsRecording(true)
-      measureAudioLevel()
-    } catch (err) {
-      setError("マイクの起動に失敗しました。設定を確認してください。")
-      console.error("Error starting recording:", err)
-    }
-  }
-
-  // 録音停止
-  const stopRecording = () => {
+  // 内部リソースのクリーンアップ
+  const cleanupAudio = () => {
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop())
       mediaStreamRef.current = null
@@ -140,8 +96,74 @@ export default function MicChecker() {
     }
 
     analyserRef.current = null
+  }
+
+  // オーディオセットアップ
+  const setupAudio = async (deviceId: string) => {
+    try {
+      cleanupAudio()
+      setError("")
+
+      const constraints: MediaStreamConstraints = {
+        audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+
+      // 権限取得後にデバイス名を再取得
+      const deviceList = await navigator.mediaDevices.enumerateDevices()
+      setDevices(deviceList.filter(device => device.kind === "audioinput"))
+
+      mediaStreamRef.current = stream
+
+      audioContextRef.current = new AudioContext()
+      analyserRef.current = audioContextRef.current.createAnalyser()
+      analyserRef.current.fftSize = 64
+      analyserRef.current.smoothingTimeConstant = 0.8
+
+      delayNodeRef.current = audioContextRef.current.createDelay(5.0)
+      delayNodeRef.current.delayTime.value = delayTime / 1000
+
+      gainNodeRef.current = audioContextRef.current.createGain()
+      gainNodeRef.current.gain.value = echoEnabled ? 1.0 : 0.0
+
+      const source = audioContextRef.current.createMediaStreamSource(stream)
+      sourceNodeRef.current = source
+
+      source.connect(analyserRef.current)
+      source.connect(delayNodeRef.current)
+      delayNodeRef.current.connect(gainNodeRef.current)
+      gainNodeRef.current.connect(audioContextRef.current.destination)
+
+      measureAudioLevel()
+    } catch (err) {
+      setError("マイクの起動に失敗しました。設定を確認してください。")
+      console.error("Error starting recording:", err)
+      // エラー時は録音状態を解除
+      setIsRecording(false)
+      cleanupAudio()
+    }
+  }
+
+  // 録音開始
+  const startRecording = async () => {
+    setIsRecording(true)
+    await setupAudio(selectedDeviceId)
+  }
+
+  // 録音停止
+  const stopRecording = () => {
+    cleanupAudio()
     setIsRecording(false)
     setAudioLevel(0)
+  }
+
+  // デバイス変更時の処理
+  const handleDeviceChange = async (deviceId: string) => {
+    setSelectedDeviceId(deviceId)
+    if (isRecording) {
+      await setupAudio(deviceId)
+    }
   }
 
   const toggleEcho = (enabled: boolean) => {
@@ -167,16 +189,16 @@ export default function MicChecker() {
 
   return (
     <div className="w-full max-w-4xl mx-auto aspect-video flex flex-col relative bg-[#121214] rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-      
+
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
         <div className="flex flex-col">
           <h1 className="text-sm font-medium text-zinc-400 tracking-wide">SIGNAL MONITOR</h1>
           {error && <span className="text-xs text-red-400 mt-1">{error}</span>}
         </div>
-        
-        <Button 
-          variant="ghost" 
+
+        <Button
+          variant="ghost"
           size="icon"
           className="text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
           onClick={() => setIsSettingsOpen(true)}
@@ -187,13 +209,13 @@ export default function MicChecker() {
 
       {/* Main Visualizer Area */}
       <div className="flex-1 flex flex-col items-center justify-center relative">
-        
+
         {/* Center Status / Level */}
         <div className="relative flex items-center justify-center mb-12">
           {/* Glowing Background Ring */}
-          <div 
+          <div
             className={cn(
-              "absolute w-64 h-64 rounded-full transition-all duration-300 ease-out blur-3xl opacity-20",
+              "absolute w-64 h-64 rounded-full transition-all duration-300 ease-out blur-3xl opacity-20 pointer-events-none",
               isRecording ? "bg-purple-500" : "bg-zinc-800"
             )}
             style={{ transform: `scale(${1 + audioLevel / 100})` }}
@@ -201,80 +223,50 @@ export default function MicChecker() {
 
           {/* Main Indicator */}
           <div className="relative z-10 flex flex-col items-center gap-4">
-             <div 
-               className={cn(
-                 "w-24 h-24 rounded-full flex items-center justify-center border transition-all duration-300",
-                 isRecording 
-                   ? "border-purple-500/50 bg-purple-500/10 shadow-[0_0_30px_-5px_rgba(168,85,247,0.4)]" 
-                   : "border-zinc-700 bg-zinc-800/50"
-               )}
-             >
-                {isRecording ? (
-                   <Mic className={cn("h-8 w-8 text-purple-400", audioLevel > 50 && "animate-pulse")} />
-                ) : (
-                   <MicOff className="h-8 w-8 text-zinc-600" />
-                )}
-             </div>
-             <div className="text-center">
-                <div className="text-3xl font-light text-white font-mono">
-                  {isRecording ? `${Math.round(audioLevel)}%` : "--"}
-                </div>
-             </div>
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={cn(
+                "w-24 h-24 rounded-full flex items-center justify-center border transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95",
+                isRecording
+                  ? "border-purple-500/50 bg-purple-500/10 shadow-[0_0_30px_-5px_rgba(168,85,247,0.4)]"
+                  : "border-zinc-700 bg-zinc-800/50 hover:bg-zinc-700/50 hover:border-zinc-600"
+              )}
+            >
+              {isRecording ? (
+                <Mic className={cn("h-8 w-8 text-purple-400", audioLevel > 50 && "animate-pulse")} />
+              ) : (
+                <MicOff className="h-8 w-8 text-zinc-600 group-hover:text-zinc-400" />
+              )}
+            </button>
           </div>
         </div>
 
         {/* Frequency Bars */}
         <div className="flex items-end justify-center gap-1.5 h-16 w-full max-w-sm px-4">
-           {[...Array(20)].map((_, i) => {
-             // Simple simulation of frequency data visualization based on single level for now
-             // In a real app, we'd use getByteFrequencyData per bin
-             const heightMod = Math.sin(i * 0.5) * 0.5 + 0.5
-             const height = isRecording 
-                ? Math.max(4, (audioLevel * heightMod * (0.5 + Math.random() * 0.5)))
-                : 4
-             
-             return (
-               <div
-                 key={i}
-                 className={cn(
-                   "w-2 rounded-full transition-all duration-75",
-                   isRecording ? "bg-zinc-400" : "bg-zinc-800"
-                 )}
-                 style={{ 
-                   height: `${height}%`,
-                   opacity: isRecording ? 0.5 + (height / 100) * 0.5 : 0.3
-                 }}
-               />
-             )
-           })}
+          {[...Array(20)].map((_, i) => {
+            // Simple simulation of frequency data visualization based on single level for now
+            // In a real app, we'd use getByteFrequencyData per bin
+            const heightMod = Math.sin(i * 0.5) * 0.5 + 0.5
+            const height = isRecording
+              ? Math.max(4, (audioLevel * heightMod * (0.5 + Math.random() * 0.5)))
+              : 4
+
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "w-2 rounded-full transition-all duration-75",
+                  isRecording ? "bg-zinc-400" : "bg-zinc-800"
+                )}
+                style={{
+                  height: `${height}%`,
+                  opacity: isRecording ? 0.5 + (height / 100) * 0.5 : 0.3
+                }}
+              />
+            )
+          })}
         </div>
 
-      </div>
-
-      {/* Bottom Controls */}
-      <div className="p-8 flex justify-center z-20">
-        <Button
-          onClick={isRecording ? stopRecording : startRecording}
-          size="lg"
-          className={cn(
-            "h-12 px-8 rounded-full font-medium transition-all duration-300 border",
-            isRecording 
-              ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40" 
-              : "bg-white text-black border-transparent hover:bg-zinc-200"
-          )}
-        >
-          {isRecording ? (
-            <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              Stop Monitoring
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Loader2 className={cn("w-4 h-4", error ? "text-red-500" : "hidden")} />
-              Start Monitoring
-            </span>
-          )}
-        </Button>
       </div>
 
       {/* Settings Modal */}
@@ -283,7 +275,7 @@ export default function MicChecker() {
         onClose={() => setIsSettingsOpen(false)}
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onDeviceChange={setSelectedDeviceId}
+        onDeviceChange={handleDeviceChange}
         echoEnabled={echoEnabled}
         onEchoChange={toggleEcho}
         delayTime={delayTime}
